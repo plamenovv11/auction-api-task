@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  barnebys-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/barnebys
+      - LOG_LEVEL=debug
+      - ANALYTICS_RATE_LIMIT_WINDOW=60000
+      - ANALYTICS_IMPRESSION_COOLDOWN=30000
+      - ANALYTICS_CLICK_COOLDOWN=5000
+      - ANALYTICS_CLEANUP_INTERVAL=300000
+      - ANALYTICS_DATA_RETENTION_DAYS=90
+      - SESSION_SECRET=dev-session-secret
+      - SESSION_MAX_AGE=86400000
+    volumes:
+      - ./src:/app/src
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json
+      - ./tsconfig.json:/app/tsconfig.json
+    depends_on:
+      - mongodb
+    command: npm run start:dev
+    networks:
+      - barnebys-network
+
+  mongodb:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=barnebys
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - barnebys-network
+
+  mongo-express:
+    image: mongo-express:latest
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongodb
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_ADMINUSERNAME=
+      - ME_CONFIG_MONGODB_ADMINPASSWORD=
+      - ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017/
+    depends_on:
+      - mongodb
+    networks:
+      - barnebys-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  barnebys-network:
+    driver: bridge

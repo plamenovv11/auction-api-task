@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: barnebys-backend
+  namespace: barnebys
+  labels:
+    app: barnebys-backend
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: barnebys-backend
+  template:
+    metadata:
+      labels:
+        app: barnebys-backend
+        version: v1
+    spec:
+      containers:
+      - name: barnebys-backend
+        image: barnebys-backend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: PORT
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: LOG_LEVEL
+        - name: ANALYTICS_RATE_LIMIT_WINDOW
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: ANALYTICS_RATE_LIMIT_WINDOW
+        - name: ANALYTICS_IMPRESSION_COOLDOWN
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: ANALYTICS_IMPRESSION_COOLDOWN
+        - name: ANALYTICS_CLICK_COOLDOWN
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: ANALYTICS_CLICK_COOLDOWN
+        - name: ANALYTICS_CLEANUP_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: ANALYTICS_CLEANUP_INTERVAL
+        - name: ANALYTICS_DATA_RETENTION_DAYS
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: ANALYTICS_DATA_RETENTION_DAYS
+        - name: SESSION_MAX_AGE
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: SESSION_MAX_AGE
+        - name: KUBERNETES_SERVICE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: barnebys-config
+              key: KUBERNETES_SERVICE_HOST
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: barnebys-secrets
+              key: MONGODB_URI
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: barnebys-secrets
+              key: SESSION_SECRET
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          runAsUser: 1001
+          capabilities:
+            drop:
+            - ALL
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
